@@ -4,6 +4,7 @@ export interface WheelDomain {
   description: string;
   score: number;
   color: string;
+  isPriority?: boolean;
 }
 
 export interface DYLComponent {
@@ -22,6 +23,12 @@ export interface OdysseyPlan {
   metrics: string;
 }
 
+export interface NextAction {
+  type: 'calendly' | 'amazon' | 'mailto' | 'custom';
+  url: string;
+  label: string;
+}
+
 export interface SmartGoal {
   id: string;
   area: string;
@@ -30,6 +37,7 @@ export interface SmartGoal {
   achievable: string;
   relevant: string;
   timeBound: string;
+  nextAction?: NextAction;
 }
 
 export interface QuickWin {
@@ -72,4 +80,6 @@ export interface LifeAuditState {
   goodTimeJournal: GoodTimeEntry[];
   currentSection: string;
   lastSaved?: string;
+  auditStartDate?: string;
+  priorityDomains?: string[];
 }

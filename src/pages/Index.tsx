@@ -7,6 +7,9 @@ import { OdysseyPlanning } from '@/components/OdysseyPlanning';
 import { SmartGoals } from '@/components/SmartGoals';
 import { QuickWins } from '@/components/QuickWins';
 import { TaskDashboard } from '@/components/TaskDashboard';
+import { CalendarView } from '@/components/CalendarView';
+import { DataBackup } from '@/components/DataBackup';
+import { OnboardingModal } from '@/components/OnboardingModal';
 import { useLifeAudit } from '@/hooks/useLifeAudit';
 
 const Index = () => {
@@ -19,18 +22,21 @@ const Index = () => {
     tasks,
     currentSection,
     isLoaded,
+    auditStartDate,
     setCurrentSection,
     updateWheelScore,
     updateDYLReflection,
     updateOdysseyPlan,
     addSmartGoal,
     removeSmartGoal,
+    updateSmartGoalAction,
     toggleQuickWin,
     addQuickWin,
     removeQuickWin,
     addTask,
     updateTask,
     removeTask,
+    completeOnboarding,
   } = useLifeAudit();
 
   const scrollToSection = useCallback((sectionId: string) => {
@@ -58,6 +64,13 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Navigation currentSection={currentSection} onNavigate={scrollToSection} />
       
+      {/* Onboarding Modal */}
+      <OnboardingModal
+        domains={wheelDomains}
+        onComplete={completeOnboarding}
+        isLoaded={isLoaded}
+      />
+      
       <main>
         <div id="hero-section">
           <HeroSection onStart={handleStart} />
@@ -83,6 +96,7 @@ const Index = () => {
           domains={wheelDomains}
           onAddGoal={addSmartGoal}
           onRemoveGoal={removeSmartGoal}
+          onUpdateGoalAction={updateSmartGoalAction}
         />
         
         <QuickWins 
@@ -92,6 +106,13 @@ const Index = () => {
           onRemove={removeQuickWin}
         />
 
+        <CalendarView
+          quickWins={quickWins}
+          goals={smartGoals}
+          auditStartDate={auditStartDate}
+          onScheduleReview={() => {}}
+        />
+
         <TaskDashboard
           tasks={tasks}
           domains={wheelDomains}
@@ -99,6 +120,15 @@ const Index = () => {
           onUpdateTask={updateTask}
           onRemoveTask={removeTask}
         />
+
+        {/* Settings & Export Section */}
+        <section className="py-12 px-4 sm:px-6 lg:px-8 bg-secondary/20" id="settings">
+          <div className="max-w-4xl mx-auto">
+            <div className="grid md:grid-cols-2 gap-6">
+              <DataBackup onImportSuccess={() => window.location.reload()} />
+            </div>
+          </div>
+        </section>
 
         {/* Footer */}
         <footer className="py-12 px-4 border-t border-border bg-secondary/20">
