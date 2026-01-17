@@ -1,4 +1,4 @@
-import { ArrowDown } from 'lucide-react';
+import { ArrowDown, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface HeroSectionProps {
@@ -35,8 +35,17 @@ export function HeroSection({ onStart }: HeroSectionProps) {
             variant="outline" 
             size="lg"
             className="border-border hover:bg-secondary px-8 py-6 text-lg rounded-xl"
+            asChild
           >
-            Learn the Method
+            <a 
+              href="https://designingyour.life/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2"
+            >
+              <BookOpen className="w-5 h-5" />
+              Learn the Method
+            </a>
           </Button>
         </div>
         
