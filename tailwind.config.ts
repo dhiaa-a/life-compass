@@ -13,6 +13,10 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ["Inter", "system-ui", "sans-serif"],
+        display: ["Playfair Display", "Georgia", "serif"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -47,6 +51,21 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        wheel: {
+          career: "hsl(var(--wheel-career))",
+          finance: "hsl(var(--wheel-finance))",
+          health: "hsl(var(--wheel-health))",
+          relationships: "hsl(var(--wheel-relationships))",
+          romance: "hsl(var(--wheel-romance))",
+          growth: "hsl(var(--wheel-growth))",
+          fun: "hsl(var(--wheel-fun))",
+          environment: "hsl(var(--wheel-environment))",
+        },
+        odyssey: {
+          a: "hsl(var(--odyssey-a))",
+          b: "hsl(var(--odyssey-b))",
+          c: "hsl(var(--odyssey-c))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -65,20 +84,12 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
         },
       },
       animation: {
