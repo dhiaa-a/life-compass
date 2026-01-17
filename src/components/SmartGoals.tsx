@@ -5,13 +5,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { SmartGoal, WheelDomain } from '@/types/lifeAudit';
+import { MoodTracker } from '@/components/MoodTracker';
+import { NextActionLinks } from '@/components/NextActionLinks';
+import type { SmartGoal, WheelDomain, NextAction } from '@/types/lifeAudit';
 
 interface SmartGoalsProps {
   goals: SmartGoal[];
   domains: WheelDomain[];
   onAddGoal: (goal: SmartGoal) => void;
   onRemoveGoal: (goalId: string) => void;
+  onUpdateGoalAction: (goalId: string, action: NextAction) => void;
 }
 
 const smartCriteria = [
@@ -22,7 +25,7 @@ const smartCriteria = [
   { key: 'timeBound', label: 'Time-bound', description: 'What is your deadline? (Aim for 90 days)' },
 ];
 
-export function SmartGoals({ goals, domains, onAddGoal, onRemoveGoal }: SmartGoalsProps) {
+export function SmartGoals({ goals, domains, onAddGoal, onRemoveGoal, onUpdateGoalAction }: SmartGoalsProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [newGoal, setNewGoal] = useState<Partial<SmartGoal>>({
     area: '',
@@ -51,6 +54,7 @@ export function SmartGoals({ goals, domains, onAddGoal, onRemoveGoal }: SmartGoa
   };
 
   const lowScoreDomains = domains.filter(d => d.score <= 5).sort((a, b) => a.score - b.score);
+  const priorityDomains = domains.filter(d => d.isPriority);
 
   return (
     <section className="min-h-screen py-24 px-4 sm:px-6 lg:px-8 bg-secondary/30" id="goals">
@@ -63,6 +67,23 @@ export function SmartGoals({ goals, domains, onAddGoal, onRemoveGoal }: SmartGoa
             Focus on your lowest-scoring Wheel of Life areas first.
           </p>
         </div>
+
+        {priorityDomains.length > 0 && (
+          <div className="glass-card p-4 mb-4 animate-fade-in border-primary/30">
+            <p className="text-sm text-primary font-medium mb-2">⭐ Your Priority Domains:</p>
+            <div className="flex flex-wrap gap-2">
+              {priorityDomains.map(domain => (
+                <span 
+                  key={domain.id}
+                  className="inline-flex items-center gap-2 px-3 py-1 bg-primary/20 text-primary rounded-full text-sm font-medium"
+                >
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: domain.color }} />
+                  {domain.name} ({domain.score}/10)
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         {lowScoreDomains.length > 0 && (
           <div className="glass-card p-4 mb-8 animate-fade-in">
@@ -114,6 +135,16 @@ export function SmartGoals({ goals, domains, onAddGoal, onRemoveGoal }: SmartGoa
                     <p className="text-muted-foreground">{goal.timeBound || '—'}</p>
                   </div>
                 </div>
+
+                {/* Next Action Links */}
+                <NextActionLinks
+                  goalId={goal.id}
+                  savedAction={goal.nextAction}
+                  onSaveAction={(goalId, action) => onUpdateGoalAction(goalId, action)}
+                />
+
+                {/* Mood Tracker */}
+                <MoodTracker goalId={goal.id} />
               </div>
             ))}
           </div>
@@ -134,7 +165,10 @@ export function SmartGoals({ goals, domains, onAddGoal, onRemoveGoal }: SmartGoa
                   <SelectContent>
                     {domains.map(domain => (
                       <SelectItem key={domain.id} value={domain.name}>
-                        {domain.name}
+                        <div className="flex items-center gap-2">
+                          {domain.isPriority && <span>⭐</span>}
+                          {domain.name}
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>

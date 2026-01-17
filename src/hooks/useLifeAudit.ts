@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import type { WheelDomain, DYLComponent, OdysseyPlan, SmartGoal, QuickWin, Task, GoodTimeEntry } from '@/types/lifeAudit';
+import type { WheelDomain, DYLComponent, OdysseyPlan, SmartGoal, QuickWin, Task, GoodTimeEntry, NextAction } from '@/types/lifeAudit';
 
 const STORAGE_KEY = 'life-audit-data';
 
@@ -44,6 +44,8 @@ interface StoredData {
   tasks: Task[];
   goodTimeJournal: GoodTimeEntry[];
   lastSaved: string;
+  auditStartDate?: string;
+  priorityDomains?: string[];
 }
 
 function loadFromStorage(): Partial<StoredData> | null {
@@ -76,6 +78,8 @@ export function useLifeAudit() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [goodTimeJournal, setGoodTimeJournal] = useState<GoodTimeEntry[]>([]);
   const [currentSection, setCurrentSection] = useState('hero');
+  const [auditStartDate, setAuditStartDate] = useState<string | null>(null);
+  const [priorityDomains, setPriorityDomains] = useState<string[]>([]);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -88,6 +92,8 @@ export function useLifeAudit() {
       if (stored.quickWins) setQuickWins(stored.quickWins);
       if (stored.tasks) setTasks(stored.tasks);
       if (stored.goodTimeJournal) setGoodTimeJournal(stored.goodTimeJournal);
+      if (stored.auditStartDate) setAuditStartDate(stored.auditStartDate);
+      if (stored.priorityDomains) setPriorityDomains(stored.priorityDomains);
     }
     setIsLoaded(true);
   }, []);
@@ -104,8 +110,10 @@ export function useLifeAudit() {
       tasks,
       goodTimeJournal,
       lastSaved: new Date().toISOString(),
+      auditStartDate: auditStartDate || undefined,
+      priorityDomains,
     });
-  }, [isLoaded, wheelDomains, dylComponents, odysseyPlans, smartGoals, quickWins, tasks, goodTimeJournal]);
+  }, [isLoaded, wheelDomains, dylComponents, odysseyPlans, smartGoals, quickWins, tasks, goodTimeJournal, auditStartDate, priorityDomains]);
 
   const updateWheelScore = useCallback((domainId: string, score: number) => {
     setWheelDomains(prev => 
@@ -137,6 +145,14 @@ export function useLifeAudit() {
 
   const removeSmartGoal = useCallback((goalId: string) => {
     setSmartGoals(prev => prev.filter(goal => goal.id !== goalId));
+  }, []);
+
+  const updateSmartGoalAction = useCallback((goalId: string, action: NextAction) => {
+    setSmartGoals(prev =>
+      prev.map(goal =>
+        goal.id === goalId ? { ...goal, nextAction: action } : goal
+      )
+    );
   }, []);
 
   const toggleQuickWin = useCallback((quickWinId: string) => {
@@ -204,6 +220,20 @@ export function useLifeAudit() {
     setGoodTimeJournal(prev => prev.filter(entry => entry.id !== entryId));
   }, []);
 
+  // Onboarding completion
+  const completeOnboarding = useCallback((selectedDomains: string[]) => {
+    setPriorityDomains(selectedDomains);
+    setAuditStartDate(new Date().toISOString());
+    
+    // Mark priority domains
+    setWheelDomains(prev =>
+      prev.map(domain => ({
+        ...domain,
+        isPriority: selectedDomains.includes(domain.id),
+      }))
+    );
+  }, []);
+
   // Reset all data
   const resetAllData = useCallback(() => {
     setWheelDomains(initialWheelDomains);
@@ -213,6 +243,8 @@ export function useLifeAudit() {
     setQuickWins(initialQuickWins);
     setTasks([]);
     setGoodTimeJournal([]);
+    setAuditStartDate(null);
+    setPriorityDomains([]);
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 
@@ -226,12 +258,15 @@ export function useLifeAudit() {
     goodTimeJournal,
     currentSection,
     isLoaded,
+    auditStartDate,
+    priorityDomains,
     setCurrentSection,
     updateWheelScore,
     updateDYLReflection,
     updateOdysseyPlan,
     addSmartGoal,
     removeSmartGoal,
+    updateSmartGoalAction,
     toggleQuickWin,
     addQuickWin,
     removeQuickWin,
@@ -240,6 +275,7 @@ export function useLifeAudit() {
     removeTask,
     addGoodTimeEntry,
     removeGoodTimeEntry,
+    completeOnboarding,
     resetAllData,
   };
 }

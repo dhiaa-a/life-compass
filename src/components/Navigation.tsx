@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface NavigationProps {
   currentSection: string;
@@ -12,6 +13,7 @@ const sections = [
   { id: 'odyssey', label: 'Odyssey Plans' },
   { id: 'goals', label: 'SMART Goals' },
   { id: 'quickwins', label: 'Quick Wins' },
+  { id: 'calendar', label: 'Calendar' },
   { id: 'tasks', label: 'Tasks' },
 ];
 
@@ -43,6 +45,7 @@ export function Navigation({ currentSection, onNavigate }: NavigationProps) {
                 {section.label}
               </button>
             ))}
+            <ThemeToggle />
           </div>
         </div>
       </div>
