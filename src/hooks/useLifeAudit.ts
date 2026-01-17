@@ -1,5 +1,7 @@
-import { useState, useCallback } from 'react';
-import type { WheelDomain, DYLComponent, OdysseyPlan, SmartGoal, QuickWin } from '@/types/lifeAudit';
+import { useState, useCallback, useEffect } from 'react';
+import type { WheelDomain, DYLComponent, OdysseyPlan, SmartGoal, QuickWin, Task, GoodTimeEntry } from '@/types/lifeAudit';
+
+const STORAGE_KEY = 'life-audit-data';
 
 const initialWheelDomains: WheelDomain[] = [
   { id: 'career', name: 'Career & Work', description: 'Your professional life, job satisfaction, career path, and future prospects.', score: 5, color: 'hsl(200, 70%, 50%)' },
@@ -33,13 +35,77 @@ const initialQuickWins: QuickWin[] = [
   { id: 'productivity', area: 'Productivity', action: 'The "One Thing" Rule: Identify your MIT before bed.', rationale: 'Start the day with focus and clear priority.', completed: false },
 ];
 
+interface StoredData {
+  wheelDomains: WheelDomain[];
+  dylComponents: DYLComponent[];
+  odysseyPlans: OdysseyPlan[];
+  smartGoals: SmartGoal[];
+  quickWins: QuickWin[];
+  tasks: Task[];
+  goodTimeJournal: GoodTimeEntry[];
+  lastSaved: string;
+}
+
+function loadFromStorage(): Partial<StoredData> | null {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.error('Failed to load from localStorage:', e);
+  }
+  return null;
+}
+
+function saveToStorage(data: StoredData): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.error('Failed to save to localStorage:', e);
+  }
+}
+
 export function useLifeAudit() {
+  const [isLoaded, setIsLoaded] = useState(false);
   const [wheelDomains, setWheelDomains] = useState<WheelDomain[]>(initialWheelDomains);
   const [dylComponents, setDYLComponents] = useState<DYLComponent[]>(initialDYLComponents);
   const [odysseyPlans, setOdysseyPlans] = useState<OdysseyPlan[]>(initialOdysseyPlans);
   const [smartGoals, setSmartGoals] = useState<SmartGoal[]>([]);
   const [quickWins, setQuickWins] = useState<QuickWin[]>(initialQuickWins);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [goodTimeJournal, setGoodTimeJournal] = useState<GoodTimeEntry[]>([]);
   const [currentSection, setCurrentSection] = useState('hero');
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    const stored = loadFromStorage();
+    if (stored) {
+      if (stored.wheelDomains) setWheelDomains(stored.wheelDomains);
+      if (stored.dylComponents) setDYLComponents(stored.dylComponents);
+      if (stored.odysseyPlans) setOdysseyPlans(stored.odysseyPlans);
+      if (stored.smartGoals) setSmartGoals(stored.smartGoals);
+      if (stored.quickWins) setQuickWins(stored.quickWins);
+      if (stored.tasks) setTasks(stored.tasks);
+      if (stored.goodTimeJournal) setGoodTimeJournal(stored.goodTimeJournal);
+    }
+    setIsLoaded(true);
+  }, []);
+
+  // Save to localStorage on changes
+  useEffect(() => {
+    if (!isLoaded) return;
+    saveToStorage({
+      wheelDomains,
+      dylComponents,
+      odysseyPlans,
+      smartGoals,
+      quickWins,
+      tasks,
+      goodTimeJournal,
+      lastSaved: new Date().toISOString(),
+    });
+  }, [isLoaded, wheelDomains, dylComponents, odysseyPlans, smartGoals, quickWins, tasks, goodTimeJournal]);
 
   const updateWheelScore = useCallback((domainId: string, score: number) => {
     setWheelDomains(prev => 
@@ -81,13 +147,85 @@ export function useLifeAudit() {
     );
   }, []);
 
+  const addQuickWin = useCallback((quickWin: Omit<QuickWin, 'id' | 'completed' | 'isCustom'>) => {
+    const newWin: QuickWin = {
+      ...quickWin,
+      id: `custom-${Date.now()}`,
+      completed: false,
+      isCustom: true,
+    };
+    setQuickWins(prev => [...prev, newWin]);
+  }, []);
+
+  const removeQuickWin = useCallback((quickWinId: string) => {
+    setQuickWins(prev => prev.filter(win => win.id !== quickWinId));
+  }, []);
+
+  // Task management
+  const addTask = useCallback((task: Omit<Task, 'id' | 'createdAt' | 'status'>) => {
+    const newTask: Task = {
+      ...task,
+      id: `task-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      status: 'todo',
+    };
+    setTasks(prev => [...prev, newTask]);
+  }, []);
+
+  const updateTask = useCallback((taskId: string, updates: Partial<Task>) => {
+    setTasks(prev =>
+      prev.map(task => {
+        if (task.id === taskId) {
+          const updated = { ...task, ...updates };
+          if (updates.status === 'done' && !task.completedAt) {
+            updated.completedAt = new Date().toISOString();
+          }
+          return updated;
+        }
+        return task;
+      })
+    );
+  }, []);
+
+  const removeTask = useCallback((taskId: string) => {
+    setTasks(prev => prev.filter(task => task.id !== taskId));
+  }, []);
+
+  // Good Time Journal
+  const addGoodTimeEntry = useCallback((entry: Omit<GoodTimeEntry, 'id'>) => {
+    const newEntry: GoodTimeEntry = {
+      ...entry,
+      id: `gtj-${Date.now()}`,
+    };
+    setGoodTimeJournal(prev => [...prev, newEntry]);
+  }, []);
+
+  const removeGoodTimeEntry = useCallback((entryId: string) => {
+    setGoodTimeJournal(prev => prev.filter(entry => entry.id !== entryId));
+  }, []);
+
+  // Reset all data
+  const resetAllData = useCallback(() => {
+    setWheelDomains(initialWheelDomains);
+    setDYLComponents(initialDYLComponents);
+    setOdysseyPlans(initialOdysseyPlans);
+    setSmartGoals([]);
+    setQuickWins(initialQuickWins);
+    setTasks([]);
+    setGoodTimeJournal([]);
+    localStorage.removeItem(STORAGE_KEY);
+  }, []);
+
   return {
     wheelDomains,
     dylComponents,
     odysseyPlans,
     smartGoals,
     quickWins,
+    tasks,
+    goodTimeJournal,
     currentSection,
+    isLoaded,
     setCurrentSection,
     updateWheelScore,
     updateDYLReflection,
@@ -95,5 +233,13 @@ export function useLifeAudit() {
     addSmartGoal,
     removeSmartGoal,
     toggleQuickWin,
+    addQuickWin,
+    removeQuickWin,
+    addTask,
+    updateTask,
+    removeTask,
+    addGoodTimeEntry,
+    removeGoodTimeEntry,
+    resetAllData,
   };
 }

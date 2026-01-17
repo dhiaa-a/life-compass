@@ -38,6 +38,28 @@ export interface QuickWin {
   action: string;
   rationale: string;
   completed: boolean;
+  isCustom?: boolean;
+}
+
+export interface Task {
+  id: string;
+  title: string;
+  description?: string;
+  priority: 'low' | 'medium' | 'high';
+  status: 'todo' | 'in_progress' | 'done';
+  dueDate?: string;
+  category: string;
+  createdAt: string;
+  completedAt?: string;
+}
+
+export interface GoodTimeEntry {
+  id: string;
+  date: string;
+  activity: string;
+  engagement: 'high' | 'medium' | 'low';
+  energy: 'energized' | 'neutral' | 'drained';
+  notes?: string;
 }
 
 export interface LifeAuditState {
@@ -46,5 +68,8 @@ export interface LifeAuditState {
   odysseyPlans: OdysseyPlan[];
   smartGoals: SmartGoal[];
   quickWins: QuickWin[];
+  tasks: Task[];
+  goodTimeJournal: GoodTimeEntry[];
   currentSection: string;
+  lastSaved?: string;
 }

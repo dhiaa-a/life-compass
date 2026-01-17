@@ -6,6 +6,7 @@ import { DYLDashboard } from '@/components/DYLDashboard';
 import { OdysseyPlanning } from '@/components/OdysseyPlanning';
 import { SmartGoals } from '@/components/SmartGoals';
 import { QuickWins } from '@/components/QuickWins';
+import { TaskDashboard } from '@/components/TaskDashboard';
 import { useLifeAudit } from '@/hooks/useLifeAudit';
 
 const Index = () => {
@@ -15,7 +16,9 @@ const Index = () => {
     odysseyPlans,
     smartGoals,
     quickWins,
+    tasks,
     currentSection,
+    isLoaded,
     setCurrentSection,
     updateWheelScore,
     updateDYLReflection,
@@ -23,9 +26,12 @@ const Index = () => {
     addSmartGoal,
     removeSmartGoal,
     toggleQuickWin,
+    addQuickWin,
+    removeQuickWin,
+    addTask,
+    updateTask,
+    removeTask,
   } = useLifeAudit();
-
-  
 
   const scrollToSection = useCallback((sectionId: string) => {
     setCurrentSection(sectionId);
@@ -36,6 +42,17 @@ const Index = () => {
   }, [setCurrentSection]);
 
   const handleStart = () => scrollToSection('wheel');
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading your progress...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -70,7 +87,17 @@ const Index = () => {
         
         <QuickWins 
           quickWins={quickWins} 
-          onToggle={toggleQuickWin} 
+          onToggle={toggleQuickWin}
+          onAdd={addQuickWin}
+          onRemove={removeQuickWin}
+        />
+
+        <TaskDashboard
+          tasks={tasks}
+          domains={wheelDomains}
+          onAddTask={addTask}
+          onUpdateTask={updateTask}
+          onRemoveTask={removeTask}
         />
 
         {/* Footer */}
@@ -82,8 +109,36 @@ const Index = () => {
             <p className="text-muted-foreground text-sm mb-4">
               Review this assessment every 90 days. Track your Good Time Journal and iterate on your Odyssey Plans.
             </p>
+            <div className="flex flex-wrap justify-center gap-4 text-xs text-muted-foreground mb-4">
+              <a 
+                href="https://designingyour.life/" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="hover:text-primary transition-colors"
+              >
+                Designing Your Life
+              </a>
+              <span>•</span>
+              <a 
+                href="https://lifedesignlab.stanford.edu/dyl" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="hover:text-primary transition-colors"
+              >
+                Stanford Life Design Lab
+              </a>
+              <span>•</span>
+              <a 
+                href="https://positivepsychology.com/wheel-of-life-coaching/" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="hover:text-primary transition-colors"
+              >
+                Wheel of Life Research
+              </a>
+            </div>
             <p className="text-xs text-muted-foreground">
-              Based on the <a href="https://designingyour.life/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Designing Your Life</a> methodology by Bill Burnett & Dave Evans
+              Based on evidence-based methodologies by Bill Burnett & Dave Evans
             </p>
           </div>
         </footer>
