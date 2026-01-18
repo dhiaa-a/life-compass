@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import type { WheelDomain, DYLComponent, OdysseyPlan, SmartGoal, QuickWin, Task, GoodTimeEntry, NextAction } from '@/types/lifeAudit';
+import type { WheelDomain, DYLComponent, OdysseyPlan, SmartGoal, QuickWin, Task, GoodTimeEntry, NextAction, ActionItem, DailyCheckIn, DomainProgress } from '@/types/lifeAudit';
 
 const STORAGE_KEY = 'life-audit-data';
 
@@ -40,10 +40,14 @@ interface StoredData {
   dylComponents: DYLComponent[];
   odysseyPlans: OdysseyPlan[];
   smartGoals: SmartGoal[];
+  actionItems: ActionItem[];
+  dailyCheckIns: DailyCheckIn[];
+  domainProgress: DomainProgress[];
   quickWins: QuickWin[];
   tasks: Task[];
   goodTimeJournal: GoodTimeEntry[];
   lastSaved: string;
+  activeDomainId?: string;
   auditStartDate?: string;
   priorityDomains?: string[];
   lifeSatisfactionScore?: number;
@@ -76,10 +80,14 @@ export function useLifeAudit() {
   const [dylComponents, setDYLComponents] = useState<DYLComponent[]>(initialDYLComponents);
   const [odysseyPlans, setOdysseyPlans] = useState<OdysseyPlan[]>(initialOdysseyPlans);
   const [smartGoals, setSmartGoals] = useState<SmartGoal[]>([]);
+  const [actionItems, setActionItems] = useState<ActionItem[]>([]);
+  const [dailyCheckIns, setDailyCheckIns] = useState<DailyCheckIn[]>([]);
+  const [domainProgress, setDomainProgress] = useState<DomainProgress[]>([]);
   const [quickWins, setQuickWins] = useState<QuickWin[]>(initialQuickWins);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [goodTimeJournal, setGoodTimeJournal] = useState<GoodTimeEntry[]>([]);
   const [currentSection, setCurrentSection] = useState('hero');
+  const [activeDomainId, setActiveDomainId] = useState<string | null>(null);
   const [auditStartDate, setAuditStartDate] = useState<string | null>(null);
   const [priorityDomains, setPriorityDomains] = useState<string[]>([]);
   const [lifeSatisfactionScore, setLifeSatisfactionScore] = useState<number | null>(null);
@@ -93,9 +101,13 @@ export function useLifeAudit() {
       if (stored.dylComponents) setDYLComponents(stored.dylComponents);
       if (stored.odysseyPlans) setOdysseyPlans(stored.odysseyPlans);
       if (stored.smartGoals) setSmartGoals(stored.smartGoals);
+      if (stored.actionItems) setActionItems(stored.actionItems);
+      if (stored.dailyCheckIns) setDailyCheckIns(stored.dailyCheckIns);
+      if (stored.domainProgress) setDomainProgress(stored.domainProgress);
       if (stored.quickWins) setQuickWins(stored.quickWins);
       if (stored.tasks) setTasks(stored.tasks);
       if (stored.goodTimeJournal) setGoodTimeJournal(stored.goodTimeJournal);
+      if (stored.activeDomainId) setActiveDomainId(stored.activeDomainId);
       if (stored.auditStartDate) setAuditStartDate(stored.auditStartDate);
       if (stored.priorityDomains) setPriorityDomains(stored.priorityDomains);
       if (stored.lifeSatisfactionScore) setLifeSatisfactionScore(stored.lifeSatisfactionScore);
@@ -112,16 +124,20 @@ export function useLifeAudit() {
       dylComponents,
       odysseyPlans,
       smartGoals,
+      actionItems,
+      dailyCheckIns,
+      domainProgress,
       quickWins,
       tasks,
       goodTimeJournal,
       lastSaved: new Date().toISOString(),
+      activeDomainId: activeDomainId || undefined,
       auditStartDate: auditStartDate || undefined,
       priorityDomains,
       lifeSatisfactionScore: lifeSatisfactionScore || undefined,
       lifeSatisfactionDate: lifeSatisfactionDate || undefined,
     });
-  }, [isLoaded, wheelDomains, dylComponents, odysseyPlans, smartGoals, quickWins, tasks, goodTimeJournal, auditStartDate, priorityDomains, lifeSatisfactionScore, lifeSatisfactionDate]);
+  }, [isLoaded, wheelDomains, dylComponents, odysseyPlans, smartGoals, actionItems, dailyCheckIns, domainProgress, quickWins, tasks, goodTimeJournal, activeDomainId, auditStartDate, priorityDomains, lifeSatisfactionScore, lifeSatisfactionDate]);
 
   const updateWheelScore = useCallback((domainId: string, score: number) => {
     setWheelDomains(prev => 
@@ -147,12 +163,30 @@ export function useLifeAudit() {
     );
   }, []);
 
-  const addSmartGoal = useCallback((goal: SmartGoal) => {
-    setSmartGoals(prev => [...prev, goal]);
+  // SMART Goals
+  const addSmartGoal = useCallback((goal: Omit<SmartGoal, 'id' | 'status' | 'createdAt'>) => {
+    const newGoal: SmartGoal = {
+      ...goal,
+      id: `goal-${Date.now()}`,
+      status: 'active',
+      createdAt: new Date().toISOString(),
+    };
+    setSmartGoals(prev => [...prev, newGoal]);
+    return newGoal.id;
+  }, []);
+
+  const updateSmartGoal = useCallback((goalId: string, updates: Partial<SmartGoal>) => {
+    setSmartGoals(prev =>
+      prev.map(goal =>
+        goal.id === goalId ? { ...goal, ...updates } : goal
+      )
+    );
   }, []);
 
   const removeSmartGoal = useCallback((goalId: string) => {
     setSmartGoals(prev => prev.filter(goal => goal.id !== goalId));
+    // Also remove related actions
+    setActionItems(prev => prev.filter(action => action.goalId !== goalId));
   }, []);
 
   const updateSmartGoalAction = useCallback((goalId: string, action: NextAction) => {
@@ -163,6 +197,76 @@ export function useLifeAudit() {
     );
   }, []);
 
+  // Action Items
+  const addActionItem = useCallback((action: Omit<ActionItem, 'id' | 'createdAt' | 'status'>) => {
+    const newAction: ActionItem = {
+      ...action,
+      id: `action-${Date.now()}`,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+    };
+    setActionItems(prev => [...prev, newAction]);
+  }, []);
+
+  const updateActionItem = useCallback((actionId: string, updates: Partial<ActionItem>) => {
+    setActionItems(prev =>
+      prev.map(action => {
+        if (action.id === actionId) {
+          const updated = { ...action, ...updates };
+          if (updates.status === 'completed' && !action.completedAt) {
+            updated.completedAt = new Date().toISOString();
+          }
+          return updated;
+        }
+        return action;
+      })
+    );
+  }, []);
+
+  const removeActionItem = useCallback((actionId: string) => {
+    setActionItems(prev => prev.filter(action => action.id !== actionId));
+  }, []);
+
+  // Daily Check-ins
+  const addDailyCheckIn = useCallback((checkIn: Omit<DailyCheckIn, 'id'>) => {
+    const newCheckIn: DailyCheckIn = {
+      ...checkIn,
+      id: `checkin-${Date.now()}`,
+    };
+    setDailyCheckIns(prev => [...prev, newCheckIn]);
+  }, []);
+
+  const getTodayCheckIn = useCallback((domainId: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    return dailyCheckIns.find(c => c.domainId === domainId && c.date === today);
+  }, [dailyCheckIns]);
+
+  // Domain Progress
+  const initializeDomainProgress = useCallback((domainId: string, initialScore: number, targetScore: number) => {
+    setDomainProgress(prev => {
+      const existing = prev.find(p => p.domainId === domainId);
+      if (existing) return prev;
+      
+      return [...prev, {
+        domainId,
+        initialScore,
+        currentScore: initialScore,
+        targetScore,
+        startDate: new Date().toISOString(),
+        checkIns: [],
+      }];
+    });
+  }, []);
+
+  const updateDomainProgress = useCallback((domainId: string, updates: Partial<DomainProgress>) => {
+    setDomainProgress(prev =>
+      prev.map(progress =>
+        progress.domainId === domainId ? { ...progress, ...updates } : progress
+      )
+    );
+  }, []);
+
+  // Quick Wins
   const toggleQuickWin = useCallback((quickWinId: string) => {
     setQuickWins(prev =>
       prev.map(win =>
@@ -233,14 +337,27 @@ export function useLifeAudit() {
     setPriorityDomains(selectedDomains);
     setAuditStartDate(new Date().toISOString());
     
-    // Mark priority domains
+    // Mark priority domains and set first as active
     setWheelDomains(prev =>
       prev.map(domain => ({
         ...domain,
         isPriority: selectedDomains.includes(domain.id),
       }))
     );
+    
+    if (selectedDomains.length > 0) {
+      setActiveDomainId(selectedDomains[0]);
+    }
   }, []);
+
+  // Retake assessment for a domain
+  const retakeAssessment = useCallback((domainId: string, newScore: number) => {
+    updateWheelScore(domainId, newScore);
+    updateDomainProgress(domainId, {
+      currentScore: newScore,
+      lastAssessmentDate: new Date().toISOString(),
+    });
+  }, [updateWheelScore, updateDomainProgress]);
 
   // Reset all data
   const resetAllData = useCallback(() => {
@@ -248,9 +365,13 @@ export function useLifeAudit() {
     setDYLComponents(initialDYLComponents);
     setOdysseyPlans(initialOdysseyPlans);
     setSmartGoals([]);
+    setActionItems([]);
+    setDailyCheckIns([]);
+    setDomainProgress([]);
     setQuickWins(initialQuickWins);
     setTasks([]);
     setGoodTimeJournal([]);
+    setActiveDomainId(null);
     setAuditStartDate(null);
     setPriorityDomains([]);
     setLifeSatisfactionScore(null);
@@ -264,27 +385,60 @@ export function useLifeAudit() {
     setLifeSatisfactionDate(new Date().toISOString());
   }, []);
 
+  // Get goals for a specific domain
+  const getGoalsForDomain = useCallback((domainId: string) => {
+    return smartGoals.filter(g => g.domainId === domainId);
+  }, [smartGoals]);
+
+  // Get actions for a specific domain
+  const getActionsForDomain = useCallback((domainId: string) => {
+    return actionItems.filter(a => a.domainId === domainId);
+  }, [actionItems]);
+
+  // Get actions due today
+  const getTodayActions = useCallback((domainId?: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    return actionItems.filter(a => 
+      a.dueDate === today && 
+      a.status === 'pending' &&
+      (domainId ? a.domainId === domainId : true)
+    );
+  }, [actionItems]);
+
   return {
     wheelDomains,
     dylComponents,
     odysseyPlans,
     smartGoals,
+    actionItems,
+    dailyCheckIns,
+    domainProgress,
     quickWins,
     tasks,
     goodTimeJournal,
     currentSection,
     isLoaded,
+    activeDomainId,
     auditStartDate,
     priorityDomains,
     lifeSatisfactionScore,
     lifeSatisfactionDate,
     setCurrentSection,
+    setActiveDomainId,
     updateWheelScore,
     updateDYLReflection,
     updateOdysseyPlan,
     addSmartGoal,
+    updateSmartGoal,
     removeSmartGoal,
     updateSmartGoalAction,
+    addActionItem,
+    updateActionItem,
+    removeActionItem,
+    addDailyCheckIn,
+    getTodayCheckIn,
+    initializeDomainProgress,
+    updateDomainProgress,
     toggleQuickWin,
     addQuickWin,
     removeQuickWin,
@@ -294,7 +448,11 @@ export function useLifeAudit() {
     addGoodTimeEntry,
     removeGoodTimeEntry,
     completeOnboarding,
+    retakeAssessment,
     saveLifeSatisfactionScore,
     resetAllData,
+    getGoalsForDomain,
+    getActionsForDomain,
+    getTodayActions,
   };
 }

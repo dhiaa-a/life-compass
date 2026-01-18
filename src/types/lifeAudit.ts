@@ -5,6 +5,7 @@ export interface WheelDomain {
   score: number;
   color: string;
   isPriority?: boolean;
+  targetScore?: number;
 }
 
 export interface DYLComponent {
@@ -31,13 +32,40 @@ export interface NextAction {
 
 export interface SmartGoal {
   id: string;
+  domainId: string; // Link to domain
   area: string;
   specific: string;
   measurable: string;
   achievable: string;
   relevant: string;
   timeBound: string;
+  targetDate?: string;
   nextAction?: NextAction;
+  status: 'active' | 'completed' | 'paused';
+  createdAt: string;
+}
+
+export interface ActionItem {
+  id: string;
+  goalId: string;
+  domainId: string;
+  title: string;
+  description?: string;
+  dueDate: string;
+  status: 'pending' | 'completed' | 'skipped';
+  priority: 'low' | 'medium' | 'high';
+  createdAt: string;
+  completedAt?: string;
+}
+
+export interface DailyCheckIn {
+  id: string;
+  date: string;
+  domainId: string;
+  mood: 'great' | 'good' | 'okay' | 'bad' | 'terrible';
+  reflection?: string;
+  actionsCompleted: number;
+  actionsTotal: number;
 }
 
 export interface QuickWin {
@@ -70,15 +98,29 @@ export interface GoodTimeEntry {
   notes?: string;
 }
 
+export interface DomainProgress {
+  domainId: string;
+  initialScore: number;
+  currentScore: number;
+  targetScore: number;
+  startDate: string;
+  checkIns: DailyCheckIn[];
+  lastAssessmentDate?: string;
+}
+
 export interface LifeAuditState {
   wheelDomains: WheelDomain[];
   dylComponents: DYLComponent[];
   odysseyPlans: OdysseyPlan[];
   smartGoals: SmartGoal[];
+  actionItems: ActionItem[];
+  dailyCheckIns: DailyCheckIn[];
+  domainProgress: DomainProgress[];
   quickWins: QuickWin[];
   tasks: Task[];
   goodTimeJournal: GoodTimeEntry[];
   currentSection: string;
+  activeDomainId?: string; // Currently focused domain
   lastSaved?: string;
   auditStartDate?: string;
   priorityDomains?: string[];
