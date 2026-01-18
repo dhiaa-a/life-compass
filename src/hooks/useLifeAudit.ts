@@ -46,6 +46,8 @@ interface StoredData {
   lastSaved: string;
   auditStartDate?: string;
   priorityDomains?: string[];
+  lifeSatisfactionScore?: number;
+  lifeSatisfactionDate?: string;
 }
 
 function loadFromStorage(): Partial<StoredData> | null {
@@ -80,6 +82,8 @@ export function useLifeAudit() {
   const [currentSection, setCurrentSection] = useState('hero');
   const [auditStartDate, setAuditStartDate] = useState<string | null>(null);
   const [priorityDomains, setPriorityDomains] = useState<string[]>([]);
+  const [lifeSatisfactionScore, setLifeSatisfactionScore] = useState<number | null>(null);
+  const [lifeSatisfactionDate, setLifeSatisfactionDate] = useState<string | null>(null);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -94,6 +98,8 @@ export function useLifeAudit() {
       if (stored.goodTimeJournal) setGoodTimeJournal(stored.goodTimeJournal);
       if (stored.auditStartDate) setAuditStartDate(stored.auditStartDate);
       if (stored.priorityDomains) setPriorityDomains(stored.priorityDomains);
+      if (stored.lifeSatisfactionScore) setLifeSatisfactionScore(stored.lifeSatisfactionScore);
+      if (stored.lifeSatisfactionDate) setLifeSatisfactionDate(stored.lifeSatisfactionDate);
     }
     setIsLoaded(true);
   }, []);
@@ -112,8 +118,10 @@ export function useLifeAudit() {
       lastSaved: new Date().toISOString(),
       auditStartDate: auditStartDate || undefined,
       priorityDomains,
+      lifeSatisfactionScore: lifeSatisfactionScore || undefined,
+      lifeSatisfactionDate: lifeSatisfactionDate || undefined,
     });
-  }, [isLoaded, wheelDomains, dylComponents, odysseyPlans, smartGoals, quickWins, tasks, goodTimeJournal, auditStartDate, priorityDomains]);
+  }, [isLoaded, wheelDomains, dylComponents, odysseyPlans, smartGoals, quickWins, tasks, goodTimeJournal, auditStartDate, priorityDomains, lifeSatisfactionScore, lifeSatisfactionDate]);
 
   const updateWheelScore = useCallback((domainId: string, score: number) => {
     setWheelDomains(prev => 
@@ -245,7 +253,15 @@ export function useLifeAudit() {
     setGoodTimeJournal([]);
     setAuditStartDate(null);
     setPriorityDomains([]);
+    setLifeSatisfactionScore(null);
+    setLifeSatisfactionDate(null);
     localStorage.removeItem(STORAGE_KEY);
+  }, []);
+
+  // Save life satisfaction score
+  const saveLifeSatisfactionScore = useCallback((score: number) => {
+    setLifeSatisfactionScore(score);
+    setLifeSatisfactionDate(new Date().toISOString());
   }, []);
 
   return {
@@ -260,6 +276,8 @@ export function useLifeAudit() {
     isLoaded,
     auditStartDate,
     priorityDomains,
+    lifeSatisfactionScore,
+    lifeSatisfactionDate,
     setCurrentSection,
     updateWheelScore,
     updateDYLReflection,
@@ -276,6 +294,7 @@ export function useLifeAudit() {
     addGoodTimeEntry,
     removeGoodTimeEntry,
     completeOnboarding,
+    saveLifeSatisfactionScore,
     resetAllData,
   };
 }

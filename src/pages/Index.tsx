@@ -1,6 +1,7 @@
-import { useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Navigation } from '@/components/Navigation';
 import { HeroSection } from '@/components/HeroSection';
+import { LifeSatisfactionAssessment } from '@/components/LifeSatisfactionAssessment';
 import { WheelOfLife } from '@/components/WheelOfLife';
 import { DYLDashboard } from '@/components/DYLDashboard';
 import { OdysseyPlanning } from '@/components/OdysseyPlanning';
@@ -13,6 +14,8 @@ import { OnboardingModal } from '@/components/OnboardingModal';
 import { useLifeAudit } from '@/hooks/useLifeAudit';
 
 const Index = () => {
+  const [showAssessment, setShowAssessment] = useState(false);
+  
   const {
     wheelDomains,
     dylComponents,
@@ -23,6 +26,8 @@ const Index = () => {
     currentSection,
     isLoaded,
     auditStartDate,
+    lifeSatisfactionScore,
+    lifeSatisfactionDate,
     setCurrentSection,
     updateWheelScore,
     updateDYLReflection,
@@ -37,6 +42,7 @@ const Index = () => {
     updateTask,
     removeTask,
     completeOnboarding,
+    saveLifeSatisfactionScore,
   } = useLifeAudit();
 
   const scrollToSection = useCallback((sectionId: string) => {
@@ -47,7 +53,20 @@ const Index = () => {
     }
   }, [setCurrentSection]);
 
-  const handleStart = () => scrollToSection('wheel');
+  const handleStart = () => {
+    setShowAssessment(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleAssessmentComplete = (score: number) => {
+    saveLifeSatisfactionScore(score);
+    setShowAssessment(false);
+    scrollToSection('wheel');
+  };
+
+  const handleBackToHero = () => {
+    setShowAssessment(false);
+  };
 
   if (!isLoaded) {
     return (
@@ -56,6 +75,19 @@ const Index = () => {
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-muted-foreground">Loading your progress...</p>
         </div>
+      </div>
+    );
+  }
+
+  // Show assessment flow
+  if (showAssessment) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation currentSection={currentSection} onNavigate={scrollToSection} />
+        <LifeSatisfactionAssessment 
+          onComplete={handleAssessmentComplete}
+          onBack={handleBackToHero}
+        />
       </div>
     );
   }
@@ -73,7 +105,11 @@ const Index = () => {
       
       <main>
         <div id="hero-section">
-          <HeroSection onStart={handleStart} />
+          <HeroSection 
+            onStart={handleStart} 
+            lifeSatisfactionScore={lifeSatisfactionScore}
+            lifeSatisfactionDate={lifeSatisfactionDate}
+          />
         </div>
         
         <WheelOfLife 
