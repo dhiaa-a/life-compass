@@ -1,17 +1,17 @@
 import { useState, useCallback } from 'react';
 import { Navigation } from '@/components/Navigation';
 import { HeroSection } from '@/components/HeroSection';
-import { LifeSatisfactionAssessment } from '@/components/LifeSatisfactionAssessment';
-import { WheelOfLife } from '@/components/WheelOfLife';
-import { DYLDashboard } from '@/components/DYLDashboard';
+import { DomainAssessment } from '@/components/DomainAssessment';
+import { LifeOverview } from '@/components/LifeOverview';
 import { OdysseyPlanning } from '@/components/OdysseyPlanning';
 import { SmartGoals } from '@/components/SmartGoals';
 import { QuickWins } from '@/components/QuickWins';
 import { TaskDashboard } from '@/components/TaskDashboard';
 import { CalendarView } from '@/components/CalendarView';
 import { DataBackup } from '@/components/DataBackup';
-import { OnboardingModal } from '@/components/OnboardingModal';
 import { useLifeAudit } from '@/hooks/useLifeAudit';
+
+const ONBOARDING_KEY = 'life-audit-onboarding-complete';
 
 const Index = () => {
   const [showAssessment, setShowAssessment] = useState(false);
@@ -26,8 +26,6 @@ const Index = () => {
     currentSection,
     isLoaded,
     auditStartDate,
-    lifeSatisfactionScore,
-    lifeSatisfactionDate,
     setCurrentSection,
     updateWheelScore,
     updateDYLReflection,
@@ -42,7 +40,6 @@ const Index = () => {
     updateTask,
     removeTask,
     completeOnboarding,
-    saveLifeSatisfactionScore,
   } = useLifeAudit();
 
   const scrollToSection = useCallback((sectionId: string) => {
@@ -53,19 +50,30 @@ const Index = () => {
     }
   }, [setCurrentSection]);
 
+  const hasCompletedOnboarding = typeof window !== 'undefined' && 
+    localStorage.getItem(ONBOARDING_KEY) === 'true';
+
   const handleStart = () => {
-    setShowAssessment(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (hasCompletedOnboarding) {
+      scrollToSection('overview');
+    } else {
+      setShowAssessment(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
-  const handleAssessmentComplete = (score: number) => {
-    saveLifeSatisfactionScore(score);
+  const handleAssessmentComplete = (scores: Record<string, number>, priorityDomains: string[]) => {
+    // Update all domain scores from assessment
+    Object.entries(scores).forEach(([domainId, score]) => {
+      updateWheelScore(domainId, score);
+    });
+    
+    // Complete onboarding with priority domains
+    completeOnboarding(priorityDomains);
+    localStorage.setItem(ONBOARDING_KEY, 'true');
+    
     setShowAssessment(false);
-    scrollToSection('wheel');
-  };
-
-  const handleBackToHero = () => {
-    setShowAssessment(false);
+    scrollToSection('overview');
   };
 
   if (!isLoaded) {
@@ -84,9 +92,9 @@ const Index = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navigation currentSection={currentSection} onNavigate={scrollToSection} />
-        <LifeSatisfactionAssessment 
+        <DomainAssessment 
+          domains={wheelDomains}
           onComplete={handleAssessmentComplete}
-          onBack={handleBackToHero}
         />
       </div>
     );
@@ -96,75 +104,72 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Navigation currentSection={currentSection} onNavigate={scrollToSection} />
       
-      {/* Onboarding Modal */}
-      <OnboardingModal
-        domains={wheelDomains}
-        onComplete={completeOnboarding}
-        isLoaded={isLoaded}
-      />
-      
       <main>
         <div id="hero-section">
           <HeroSection 
             onStart={handleStart} 
-            lifeSatisfactionScore={lifeSatisfactionScore}
-            lifeSatisfactionDate={lifeSatisfactionDate}
+            hasCompletedOnboarding={hasCompletedOnboarding}
+            averageScore={wheelDomains.reduce((sum, d) => sum + d.score, 0) / wheelDomains.length}
           />
         </div>
         
-        <WheelOfLife 
-          domains={wheelDomains} 
-          onUpdateScore={updateWheelScore} 
-        />
-        
-        <DYLDashboard 
-          components={dylComponents} 
-          onUpdateReflection={updateDYLReflection} 
-        />
-        
-        <OdysseyPlanning 
-          plans={odysseyPlans} 
-          onUpdatePlan={updateOdysseyPlan} 
-        />
-        
-        <SmartGoals 
-          goals={smartGoals}
-          domains={wheelDomains}
-          onAddGoal={addSmartGoal}
-          onRemoveGoal={removeSmartGoal}
-          onUpdateGoalAction={updateSmartGoalAction}
-        />
-        
-        <QuickWins 
-          quickWins={quickWins} 
-          onToggle={toggleQuickWin}
-          onAdd={addQuickWin}
-          onRemove={removeQuickWin}
-        />
+        {hasCompletedOnboarding && (
+          <>
+            <LifeOverview
+              domains={wheelDomains}
+              dylComponents={dylComponents}
+              goals={smartGoals}
+              quickWins={quickWins}
+              onUpdateScore={updateWheelScore}
+              onUpdateReflection={updateDYLReflection}
+              onToggleQuickWin={toggleQuickWin}
+            />
+            
+            <OdysseyPlanning 
+              plans={odysseyPlans} 
+              onUpdatePlan={updateOdysseyPlan} 
+            />
+            
+            <SmartGoals 
+              goals={smartGoals}
+              domains={wheelDomains}
+              onAddGoal={addSmartGoal}
+              onRemoveGoal={removeSmartGoal}
+              onUpdateGoalAction={updateSmartGoalAction}
+            />
+            
+            <QuickWins 
+              quickWins={quickWins} 
+              onToggle={toggleQuickWin}
+              onAdd={addQuickWin}
+              onRemove={removeQuickWin}
+            />
 
-        <CalendarView
-          quickWins={quickWins}
-          goals={smartGoals}
-          auditStartDate={auditStartDate}
-          onScheduleReview={() => {}}
-        />
+            <CalendarView
+              quickWins={quickWins}
+              goals={smartGoals}
+              auditStartDate={auditStartDate}
+              onScheduleReview={() => {}}
+            />
 
-        <TaskDashboard
-          tasks={tasks}
-          domains={wheelDomains}
-          onAddTask={addTask}
-          onUpdateTask={updateTask}
-          onRemoveTask={removeTask}
-        />
+            <TaskDashboard
+              tasks={tasks}
+              domains={wheelDomains}
+              onAddTask={addTask}
+              onUpdateTask={updateTask}
+              onRemoveTask={removeTask}
+            />
 
-        {/* Settings & Export Section */}
-        <section className="py-12 px-4 sm:px-6 lg:px-8 bg-secondary/20" id="settings">
-          <div className="max-w-4xl mx-auto">
-            <div className="grid md:grid-cols-2 gap-6">
-              <DataBackup onImportSuccess={() => window.location.reload()} />
-            </div>
-          </div>
-        </section>
+            {/* Settings & Export Section */}
+            <section className="py-12 px-4 sm:px-6 lg:px-8 bg-secondary/20" id="settings">
+              <div className="max-w-4xl mx-auto">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <DataBackup onImportSuccess={() => window.location.reload()} />
+                </div>
+              </div>
+            </section>
+          </>
+        )}
 
         {/* Footer */}
         <footer className="py-12 px-4 border-t border-border bg-secondary/20">
@@ -173,7 +178,7 @@ const Index = () => {
               Life Design is an Ongoing Process
             </p>
             <p className="text-muted-foreground text-sm mb-4">
-              Review this assessment every 90 days. Track your Good Time Journal and iterate on your Odyssey Plans.
+              Review this assessment every 90 days. Track your progress and iterate on your plans.
             </p>
             <div className="flex flex-wrap justify-center gap-4 text-xs text-muted-foreground mb-4">
               <a 
