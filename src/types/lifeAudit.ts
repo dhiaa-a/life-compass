@@ -82,4 +82,6 @@ export interface LifeAuditState {
   lastSaved?: string;
   auditStartDate?: string;
   priorityDomains?: string[];
+  lifeSatisfactionScore?: number;
+  lifeSatisfactionDate?: string;
 }
