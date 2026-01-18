@@ -12,7 +12,7 @@ import type { SmartGoal, WheelDomain, NextAction } from '@/types/lifeAudit';
 interface SmartGoalsProps {
   goals: SmartGoal[];
   domains: WheelDomain[];
-  onAddGoal: (goal: SmartGoal) => void;
+  onAddGoal: (goal: Omit<SmartGoal, 'id' | 'status' | 'createdAt'>) => void;
   onRemoveGoal: (goalId: string) => void;
   onUpdateGoalAction: (goalId: string, action: NextAction) => void;
 }
@@ -39,8 +39,9 @@ export function SmartGoals({ goals, domains, onAddGoal, onRemoveGoal, onUpdateGo
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (newGoal.specific && newGoal.area) {
+      const domain = domains.find(d => d.name === newGoal.area);
       onAddGoal({
-        id: Date.now().toString(),
+        domainId: domain?.id || '',
         area: newGoal.area || '',
         specific: newGoal.specific || '',
         measurable: newGoal.measurable || '',
