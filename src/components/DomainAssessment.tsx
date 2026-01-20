@@ -201,6 +201,25 @@ export function DomainAssessment({ domains, onComplete }: DomainAssessmentProps)
 
   const currentAnswer = answers[currentDomain.id]?.[currentQuestionIndex];
 
+  // Diagnosis Flow for Priority Domains (check this FIRST before priority selection)
+  if (diagnosisStep !== 'none') {
+    const currentPriorityIndex = diagnosisStep === 'first' ? 0 : 1;
+    const currentPriorityDomain = domains.find(d => d.id === selectedPriorities[currentPriorityIndex]);
+    
+    if (!currentPriorityDomain) {
+      handleComplete();
+      return null;
+    }
+    
+    return (
+      <DomainDiagnosis
+        domain={currentPriorityDomain}
+        onComplete={handleDiagnosisComplete}
+        onSkip={handleSkipDiagnosis}
+      />
+    );
+  }
+
   // Priority Selection Screen
   if (showPrioritySelection) {
     // Sort domains by score (lowest first - these need most attention)
@@ -313,25 +332,6 @@ export function DomainAssessment({ domains, onComplete }: DomainAssessmentProps)
           </div>
         </div>
       </section>
-    );
-  }
-
-  // Diagnosis Flow for Priority Domains
-  if (diagnosisStep !== 'none') {
-    const currentPriorityIndex = diagnosisStep === 'first' ? 0 : 1;
-    const currentPriorityDomain = domains.find(d => d.id === selectedPriorities[currentPriorityIndex]);
-    
-    if (!currentPriorityDomain) {
-      handleComplete();
-      return null;
-    }
-    
-    return (
-      <DomainDiagnosis
-        domain={currentPriorityDomain}
-        onComplete={handleDiagnosisComplete}
-        onSkip={handleSkipDiagnosis}
-      />
     );
   }
 
