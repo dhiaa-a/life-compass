@@ -108,6 +108,12 @@ export interface DomainProgress {
   lastAssessmentDate?: string;
 }
 
+export interface ScoreSnapshot {
+  domainId: string;
+  score: number;
+  date: string;
+}
+
 export interface LifeAuditState {
   wheelDomains: WheelDomain[];
   dylComponents: DYLComponent[];
@@ -116,6 +122,7 @@ export interface LifeAuditState {
   actionItems: ActionItem[];
   dailyCheckIns: DailyCheckIn[];
   domainProgress: DomainProgress[];
+  scoreHistory: ScoreSnapshot[];
   quickWins: QuickWin[];
   tasks: Task[];
   goodTimeJournal: GoodTimeEntry[];

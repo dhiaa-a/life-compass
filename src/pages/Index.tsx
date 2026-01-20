@@ -4,6 +4,7 @@ import { HeroSection } from '@/components/HeroSection';
 import { DomainAssessment } from '@/components/DomainAssessment';
 import { DomainFocus } from '@/components/DomainFocus';
 import { LifeOverview } from '@/components/LifeOverview';
+import { ProgressCharts } from '@/components/ProgressCharts';
 import { DataBackup } from '@/components/DataBackup';
 import { useLifeAudit } from '@/hooks/useLifeAudit';
 
@@ -18,6 +19,8 @@ const Index = () => {
     smartGoals,
     actionItems,
     dailyCheckIns,
+    domainProgress,
+    scoreHistory,
     quickWins,
     currentSection,
     isLoaded,
@@ -138,6 +141,14 @@ const Index = () => {
               onUpdateScore={updateWheelScore}
               onUpdateReflection={updateDYLReflection}
               onToggleQuickWin={toggleQuickWin}
+            />
+
+            <ProgressCharts
+              domains={wheelDomains}
+              domainProgress={domainProgress}
+              dailyCheckIns={dailyCheckIns}
+              scoreHistory={scoreHistory}
+              auditStartDate={auditStartDate || undefined}
             />
 
             <section className="py-12 px-4 sm:px-6 lg:px-8 bg-secondary/20" id="settings">
