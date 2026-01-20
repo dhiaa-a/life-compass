@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import type { WheelDomain, DYLComponent, OdysseyPlan, SmartGoal, QuickWin, Task, GoodTimeEntry, NextAction, ActionItem, DailyCheckIn, DomainProgress } from '@/types/lifeAudit';
+import type { WheelDomain, DYLComponent, OdysseyPlan, SmartGoal, QuickWin, Task, GoodTimeEntry, NextAction, ActionItem, DailyCheckIn, DomainProgress, ScoreSnapshot } from '@/types/lifeAudit';
 
 const STORAGE_KEY = 'life-audit-data';
 
@@ -43,6 +43,7 @@ interface StoredData {
   actionItems: ActionItem[];
   dailyCheckIns: DailyCheckIn[];
   domainProgress: DomainProgress[];
+  scoreHistory: ScoreSnapshot[];
   quickWins: QuickWin[];
   tasks: Task[];
   goodTimeJournal: GoodTimeEntry[];
@@ -83,6 +84,7 @@ export function useLifeAudit() {
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
   const [dailyCheckIns, setDailyCheckIns] = useState<DailyCheckIn[]>([]);
   const [domainProgress, setDomainProgress] = useState<DomainProgress[]>([]);
+  const [scoreHistory, setScoreHistory] = useState<ScoreSnapshot[]>([]);
   const [quickWins, setQuickWins] = useState<QuickWin[]>(initialQuickWins);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [goodTimeJournal, setGoodTimeJournal] = useState<GoodTimeEntry[]>([]);
@@ -104,6 +106,7 @@ export function useLifeAudit() {
       if (stored.actionItems) setActionItems(stored.actionItems);
       if (stored.dailyCheckIns) setDailyCheckIns(stored.dailyCheckIns);
       if (stored.domainProgress) setDomainProgress(stored.domainProgress);
+      if (stored.scoreHistory) setScoreHistory(stored.scoreHistory);
       if (stored.quickWins) setQuickWins(stored.quickWins);
       if (stored.tasks) setTasks(stored.tasks);
       if (stored.goodTimeJournal) setGoodTimeJournal(stored.goodTimeJournal);
@@ -127,6 +130,7 @@ export function useLifeAudit() {
       actionItems,
       dailyCheckIns,
       domainProgress,
+      scoreHistory,
       quickWins,
       tasks,
       goodTimeJournal,
@@ -137,7 +141,7 @@ export function useLifeAudit() {
       lifeSatisfactionScore: lifeSatisfactionScore || undefined,
       lifeSatisfactionDate: lifeSatisfactionDate || undefined,
     });
-  }, [isLoaded, wheelDomains, dylComponents, odysseyPlans, smartGoals, actionItems, dailyCheckIns, domainProgress, quickWins, tasks, goodTimeJournal, activeDomainId, auditStartDate, priorityDomains, lifeSatisfactionScore, lifeSatisfactionDate]);
+  }, [isLoaded, wheelDomains, dylComponents, odysseyPlans, smartGoals, actionItems, dailyCheckIns, domainProgress, scoreHistory, quickWins, tasks, goodTimeJournal, activeDomainId, auditStartDate, priorityDomains, lifeSatisfactionScore, lifeSatisfactionDate]);
 
   const updateWheelScore = useCallback((domainId: string, score: number) => {
     setWheelDomains(prev => 
@@ -334,30 +338,52 @@ export function useLifeAudit() {
 
   // Onboarding completion
   const completeOnboarding = useCallback((selectedDomains: string[]) => {
+    const now = new Date().toISOString();
+    const today = now.split('T')[0];
+    
     setPriorityDomains(selectedDomains);
-    setAuditStartDate(new Date().toISOString());
+    setAuditStartDate(now);
     
     // Mark priority domains and set first as active
-    setWheelDomains(prev =>
-      prev.map(domain => ({
+    setWheelDomains(prev => {
+      // Record initial scores in history
+      const snapshots: ScoreSnapshot[] = prev.map(domain => ({
+        domainId: domain.id,
+        score: domain.score,
+        date: today,
+      }));
+      setScoreHistory(existing => [...existing, ...snapshots]);
+      
+      return prev.map(domain => ({
         ...domain,
         isPriority: selectedDomains.includes(domain.id),
-      }))
-    );
+      }));
+    });
     
     if (selectedDomains.length > 0) {
       setActiveDomainId(selectedDomains[0]);
     }
   }, []);
 
+  // Record a score snapshot for tracking
+  const recordScoreSnapshot = useCallback((domainId: string, score: number) => {
+    const today = new Date().toISOString().split('T')[0];
+    setScoreHistory(prev => {
+      // Remove any existing snapshot for this domain on this date
+      const filtered = prev.filter(s => !(s.domainId === domainId && s.date === today));
+      return [...filtered, { domainId, score, date: today }];
+    });
+  }, []);
+
   // Retake assessment for a domain
   const retakeAssessment = useCallback((domainId: string, newScore: number) => {
     updateWheelScore(domainId, newScore);
+    recordScoreSnapshot(domainId, newScore);
     updateDomainProgress(domainId, {
       currentScore: newScore,
       lastAssessmentDate: new Date().toISOString(),
     });
-  }, [updateWheelScore, updateDomainProgress]);
+  }, [updateWheelScore, updateDomainProgress, recordScoreSnapshot]);
 
   // Reset all data
   const resetAllData = useCallback(() => {
@@ -368,6 +394,7 @@ export function useLifeAudit() {
     setActionItems([]);
     setDailyCheckIns([]);
     setDomainProgress([]);
+    setScoreHistory([]);
     setQuickWins(initialQuickWins);
     setTasks([]);
     setGoodTimeJournal([]);
@@ -413,6 +440,7 @@ export function useLifeAudit() {
     actionItems,
     dailyCheckIns,
     domainProgress,
+    scoreHistory,
     quickWins,
     tasks,
     goodTimeJournal,
@@ -449,6 +477,7 @@ export function useLifeAudit() {
     removeGoodTimeEntry,
     completeOnboarding,
     retakeAssessment,
+    recordScoreSnapshot,
     saveLifeSatisfactionScore,
     resetAllData,
     getGoalsForDomain,
