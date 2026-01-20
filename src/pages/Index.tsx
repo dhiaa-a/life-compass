@@ -61,9 +61,18 @@ const Index = () => {
     }
   };
 
-  const handleAssessmentComplete = (scores: Record<string, number>, priorityDomains: string[]) => {
+  const handleAssessmentComplete = (
+    scores: Record<string, number>, 
+    priorityDomains: string[], 
+    prescribedActions: Parameters<typeof addActionItem>[0][]
+  ) => {
     Object.entries(scores).forEach(([domainId, score]) => {
       updateWheelScore(domainId, score);
+    });
+    
+    // Add prescribed actions from diagnosis
+    prescribedActions.forEach(action => {
+      addActionItem(action);
     });
     
     completeOnboarding(priorityDomains);

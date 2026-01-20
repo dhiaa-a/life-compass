@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ArrowRight, ArrowLeft, Target, Sparkles } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Target, Sparkles, Stethoscope } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { WheelDomain } from '@/types/lifeAudit';
+import { DomainDiagnosis } from '@/components/DomainDiagnosis';
+import type { WheelDomain, ActionItem } from '@/types/lifeAudit';
 
 interface DomainAssessmentProps {
   domains: WheelDomain[];
-  onComplete: (scores: Record<string, number>, priorityDomains: string[]) => void;
+  onComplete: (scores: Record<string, number>, priorityDomains: string[], prescribedActions: Omit<ActionItem, 'id' | 'createdAt' | 'status'>[]) => void;
 }
 
 // Research-backed questions for each life domain
@@ -95,6 +96,8 @@ export function DomainAssessment({ domains, onComplete }: DomainAssessmentProps)
   const [showPrioritySelection, setShowPrioritySelection] = useState(false);
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
   const [domainScores, setDomainScores] = useState<Record<string, number>>({});
+  const [diagnosisStep, setDiagnosisStep] = useState<'none' | 'first' | 'second'>('none');
+  const [prescribedActions, setPrescribedActions] = useState<Omit<ActionItem, 'id' | 'createdAt' | 'status'>[]>([]);
 
   const currentDomain = domains[currentDomainIndex];
   const domainQuestions = DOMAIN_QUESTIONS[currentDomain.id]?.questions || [];
@@ -168,8 +171,32 @@ export function DomainAssessment({ domains, onComplete }: DomainAssessmentProps)
     });
   };
 
+  const handleStartDiagnosis = () => {
+    if (selectedPriorities.length === 2) {
+      setDiagnosisStep('first');
+    }
+  };
+
+  const handleDiagnosisComplete = (actions: Omit<ActionItem, 'id' | 'createdAt' | 'status'>[]) => {
+    setPrescribedActions(prev => [...prev, ...actions]);
+    if (diagnosisStep === 'first') {
+      setDiagnosisStep('second');
+    } else {
+      // Both diagnoses complete
+      onComplete(domainScores, selectedPriorities, prescribedActions.concat(actions));
+    }
+  };
+
+  const handleSkipDiagnosis = () => {
+    if (diagnosisStep === 'first') {
+      setDiagnosisStep('second');
+    } else {
+      onComplete(domainScores, selectedPriorities, prescribedActions);
+    }
+  };
+
   const handleComplete = () => {
-    onComplete(domainScores, selectedPriorities);
+    onComplete(domainScores, selectedPriorities, prescribedActions);
   };
 
   const currentAnswer = answers[currentDomain.id]?.[currentQuestionIndex];
@@ -276,16 +303,35 @@ export function DomainAssessment({ domains, onComplete }: DomainAssessmentProps)
               {selectedPriorities.length}/2 priorities selected
             </p>
             <Button 
-              onClick={handleComplete}
+              onClick={handleStartDiagnosis}
               disabled={selectedPriorities.length !== 2}
               size="lg"
             >
-              <Sparkles className="w-4 h-4 mr-2" />
-              Start My Journey
+              <Stethoscope className="w-4 h-4 mr-2" />
+              Diagnose & Prescribe
             </Button>
           </div>
         </div>
       </section>
+    );
+  }
+
+  // Diagnosis Flow for Priority Domains
+  if (diagnosisStep !== 'none') {
+    const currentPriorityIndex = diagnosisStep === 'first' ? 0 : 1;
+    const currentPriorityDomain = domains.find(d => d.id === selectedPriorities[currentPriorityIndex]);
+    
+    if (!currentPriorityDomain) {
+      handleComplete();
+      return null;
+    }
+    
+    return (
+      <DomainDiagnosis
+        domain={currentPriorityDomain}
+        onComplete={handleDiagnosisComplete}
+        onSkip={handleSkipDiagnosis}
+      />
     );
   }
 
